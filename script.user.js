@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        WME Always Visible (BushmanZA Edition)
 // @namespace   https://wme.michaelrosstarr.com/
-// @version     2.8
+// @version     2.9
 // @description Makes your user status always visible in Waze Map Editor.
 // @author      https://github.com/michaelrosstarr
 // @include 	/^https:\/\/(www|beta)\.waze\.com\/(?!user\/)(.{2,6}\/)?editor.*$/
@@ -312,62 +312,68 @@ const clickTargetButton = () => {
  * Find and click the visibility button
  */
 const clickVisibilityButton = () => {
-    log('Looking for target button (wz-button[color="clear-icon"][size="md"] with w-icon-invisible)');
+    log('Looking for target button via w-icon-invisible in panel');
 
-    // Search through all wz-button elements with the right attributes
-    const wzButtons = document.querySelectorAll('wz-button[color="clear-icon"][size="md"]');
+    const bubbleButton = document.querySelector('wz-button.online-editors-bubble');
 
-    log(`Found ${wzButtons.length} wz-button elements with color="clear-icon" and size="md"`);
+    // Search for the invisible icon directly in the panel (not down from buttons)
+    const invisibleIcon = document.querySelector('wz-list.online-editors-list-wrapper i.w-icon-invisible');
 
-    for (const wzButton of wzButtons) {
-        // Check if this wz-button contains the invisible icon
-        const invisibleIcon = wzButton.querySelector('i.w-icon-invisible');
+    if (!invisibleIcon) {
+        log('No w-icon-invisible found in panel - already online, closing panel');
+        if (bubbleButton) bubbleButton.click();
+        return;
+    }
 
-        if (invisibleIcon) {
-            log('Found target wz-button element with w-icon-invisible icon!');
+    log('Found w-icon-invisible icon, walking up to find wz-button');
 
-            // Wait until the invisible icon is gone (editor is now online), then close the panel
-            const closePanelOnceOnline = () => {
-                const maxWait = 10000;
-                const interval = 200;
-                let elapsed = 0;
-                const poll = setInterval(() => {
-                    elapsed += interval;
-                    const stillInvisible = document.querySelector('i.w-icon-invisible');
-                    if (!stillInvisible) {
-                        clearInterval(poll);
-                        const bubbleButton = document.querySelector('wz-button.online-editors-bubble');
-                        if (bubbleButton) {
-                            bubbleButton.click();
-                            log('Closed online editors panel after confirming online');
-                        }
-                    } else if (elapsed >= maxWait) {
-                        clearInterval(poll);
-                        log('Timed out waiting for editor to go online');
-                    }
-                }, interval);
-            };
+    // Walk up from the icon to find the nearest wz-button ancestor
+    const wzButton = invisibleIcon.closest('wz-button');
+    if (!wzButton) {
+        log('Could not find parent wz-button for invisible icon');
+        if (bubbleButton) bubbleButton.click();
+        return;
+    }
 
-            // Try to click the shadow DOM button
-            if (wzButton.shadowRoot) {
-                const shadowButton = wzButton.shadowRoot.querySelector('button');
-                if (shadowButton) {
-                    shadowButton.click();
-                    log('SUCCESS: Clicked target button via shadow DOM');
-                    closePanelOnceOnline();
-                    return;
+    log('Found parent wz-button, clicking...');
+
+    // Poll until the invisible icon is gone, then close the panel
+    const closePanelOnceOnline = () => {
+        const maxWait = 10000;
+        const interval = 200;
+        let elapsed = 0;
+        const poll = setInterval(() => {
+            elapsed += interval;
+            const stillInvisible = document.querySelector('wz-list.online-editors-list-wrapper i.w-icon-invisible');
+            if (!stillInvisible) {
+                clearInterval(poll);
+                const bubble = document.querySelector('wz-button.online-editors-bubble');
+                if (bubble) {
+                    bubble.click();
+                    log('Closed online editors panel after confirming online');
                 }
+            } else if (elapsed >= maxWait) {
+                clearInterval(poll);
+                log('Timed out waiting for editor to go online');
             }
+        }, interval);
+    };
 
-            // Fallback: click the wz-button directly
-            wzButton.click();
-            log('Clicked target wz-button directly (fallback)');
+    // Try shadow DOM button first
+    if (wzButton.shadowRoot) {
+        const shadowButton = wzButton.shadowRoot.querySelector('button');
+        if (shadowButton) {
+            shadowButton.click();
+            log('SUCCESS: Clicked target button via shadow DOM');
             closePanelOnceOnline();
             return;
         }
     }
 
-    log('Target button not found - no button with w-icon-invisible icon');
+    // Fallback: click wz-button directly
+    wzButton.click();
+    log('Clicked target wz-button directly (fallback)');
+    closePanelOnceOnline();
 };
 
 /**
