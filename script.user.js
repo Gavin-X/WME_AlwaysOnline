@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        WME Always Visible (BushmanZA Edition)
 // @namespace   https://wme.michaelrosstarr.com/
-// @version     2.7
+// @version     2.8
 // @description Makes your user status always visible in Waze Map Editor.
 // @author      https://github.com/michaelrosstarr
 // @include 	/^https:\/\/(www|beta)\.waze\.com\/(?!user\/)(.{2,6}\/)?editor.*$/
@@ -326,15 +326,26 @@ const clickVisibilityButton = () => {
         if (invisibleIcon) {
             log('Found target wz-button element with w-icon-invisible icon!');
 
-            // Close the panel by clicking the bubble button again
+            // Wait until the invisible icon is gone (editor is now online), then close the panel
             const closePanelOnceOnline = () => {
-                setTimeout(() => {
-                    const bubbleButton = document.querySelector('wz-button.online-editors-bubble');
-                    if (bubbleButton) {
-                        bubbleButton.click();
-                        log('Closed online editors panel after going online');
+                const maxWait = 10000;
+                const interval = 200;
+                let elapsed = 0;
+                const poll = setInterval(() => {
+                    elapsed += interval;
+                    const stillInvisible = document.querySelector('i.w-icon-invisible');
+                    if (!stillInvisible) {
+                        clearInterval(poll);
+                        const bubbleButton = document.querySelector('wz-button.online-editors-bubble');
+                        if (bubbleButton) {
+                            bubbleButton.click();
+                            log('Closed online editors panel after confirming online');
+                        }
+                    } else if (elapsed >= maxWait) {
+                        clearInterval(poll);
+                        log('Timed out waiting for editor to go online');
                     }
-                }, 500);
+                }, interval);
             };
 
             // Try to click the shadow DOM button
