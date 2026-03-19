@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        WME Always Visible (BushmanZA Edition)
 // @namespace   https://wme.michaelrosstarr.com/
-// @version     2.5
+// @version     2.6
 // @description Makes your user status always visible in Waze Map Editor.
 // @author      https://github.com/michaelrosstarr
 // @include 	/^https:\/\/(www|beta)\.waze\.com\/(?!user\/)(.{2,6}\/)?editor.*$/
@@ -326,21 +326,48 @@ const clickVisibilityButton = () => {
         if (invisibleIcon) {
             log('Found target wz-button element with w-icon-invisible icon!');
 
+            // After clicking, observe for the invisible icon to disappear (confirming online),
+            // then close the panel only if it is still open.
+            const closePanelOnceOnline = () => {
+                const observer = createObserver((mutations, obs) => {
+                    if (!document.querySelector('i.w-icon-invisible')) {
+                        obs.disconnect();
+                        const listWrapper = document.querySelector('wz-list.online-editors-list-wrapper');
+                        if (listWrapper) {
+                            const bubbleButton = document.querySelector('wz-button.online-editors-bubble');
+                            if (bubbleButton) {
+                                bubbleButton.click();
+                                log('Closed online editors panel after going online');
+                            }
+                        } else {
+                            log('Panel already closed after going online');
+                        }
+                    }
+                });
+                if (observer) {
+                    observer.observe(document.body, { childList: true, subtree: true });
+                    // Fallback: close after 3 seconds if observer never fires
+                    setTimeout(() => {
+                        observer.disconnect();
+                        const listWrapper = document.querySelector('wz-list.online-editors-list-wrapper');
+                        if (listWrapper) {
+                            const bubbleButton = document.querySelector('wz-button.online-editors-bubble');
+                            if (bubbleButton) {
+                                bubbleButton.click();
+                                log('Closed online editors panel (fallback timeout)');
+                            }
+                        }
+                    }, 3000);
+                }
+            };
+
             // Try to click the shadow DOM button
             if (wzButton.shadowRoot) {
                 const shadowButton = wzButton.shadowRoot.querySelector('button');
                 if (shadowButton) {
                     shadowButton.click();
                     log('SUCCESS: Clicked target button via shadow DOM');
-
-                    // Close the panel after clicking
-                    setTimeout(() => {
-                        const bubbleButton = document.querySelector('wz-button.online-editors-bubble');
-                        if (bubbleButton) {
-                            bubbleButton.click();
-                            log('Closed online editors panel');
-                        }
-                    }, 500);
+                    closePanelOnceOnline();
                     return;
                 }
             }
@@ -348,15 +375,7 @@ const clickVisibilityButton = () => {
             // Fallback: click the wz-button directly
             wzButton.click();
             log('Clicked target wz-button directly (fallback)');
-
-            // Close the panel after clicking
-            setTimeout(() => {
-                const bubbleButton = document.querySelector('wz-button.online-editors-bubble');
-                if (bubbleButton) {
-                    bubbleButton.click();
-                    log('Closed online editors panel');
-                }
-            }, 500);
+            closePanelOnceOnline();
             return;
         }
     }
