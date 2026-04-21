@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name        WME Always Visible (BushmanZA Edition)
+// @name        WME Always Visible (localhostZA Edition)
 // @namespace   https://wme.michaelrosstarr.com/
 // @version     2.9
 // @description Makes your user status always visible in Waze Map Editor.
@@ -129,7 +129,7 @@ const createSettingsTab = async () => {
             <div style="padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;">
                 <h3 style="margin-top: 0;">WME Always Visible</h3>
                 <p style="color: #666; margin-bottom: 5px;">Version: ${SCRIPT_INFO.version}</p>
-                <p style="color: #666; margin-bottom: 20px; font-size: 12px;">By BushmanZA</p>
+                <p style="color: #666; margin-bottom: 20px; font-size: 12px;">By localhostZA</p>
                 
                 <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                     <p style="margin: 0; font-size: 14px; line-height: 1.6;">
